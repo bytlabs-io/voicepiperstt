@@ -10,7 +10,10 @@ if __name__ == '__main__':
     print("starting")
     print("└─ ... ", end='', flush=True)
 
+
     from RealtimeSTT import AudioToTextRecorder
+    from fastapi.responses import HTMLResponse
+    from fastapi import FastAPI, WebSocket
     from colorama import Fore, Style
     from pyngrok import ngrok
     import nest_asyncio
@@ -18,6 +21,7 @@ if __name__ == '__main__':
     import threading
     import colorama
     import asyncio
+    import uvicorn
     import shutil
     import queue
     import json
@@ -37,37 +41,6 @@ if __name__ == '__main__':
 
     def clear_console():
         os.system('clear' if os.name == 'posix' else 'cls')
-
-    async def handler(websocket, path):
-        print("\r└─ OK")
-        if WAIT_FOR_START_COMMAND:
-            print("waiting for start command")
-            print("└─ ... ", end='', flush=True)
-
-        connected_clients.add(websocket)
-
-        try:
-            while True:
-                async for message in websocket:
-                    data = json.loads(message)
-                    if data.get("type") == "command" and data.get("content") == "start-recording":
-                        print("\r└─ OK")
-                        start_recording_event.set()
-                    elif data.get("type") == "audio":
-                        audio_chunk = data.get("content")
-                        audio_chunks.put(audio_chunk)
-
-        except json.JSONDecodeError:
-            print(Fore.RED + "STT Received an invalid JSON message." + Style.RESET_ALL)
-        except websockets.ConnectionClosedError:
-            print(Fore.RED + "connection closed unexpectedly by the client" + Style.RESET_ALL)
-        except websockets.exceptions.ConnectionClosedOK:
-            print("connection closed.")
-        finally:
-            print("client disconnected")
-            connected_clients.remove(websocket)
-            print("waiting for clients")
-            print("└─ ... ", end='', flush=True)
 
     def add_message_to_queue(type: str, content):
         message = {
@@ -163,15 +136,49 @@ if __name__ == '__main__':
     print('Public URL:', ngrok_tunnel.public_url)
     nest_asyncio.apply()
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    app = FastAPI()
 
-    start_server = websockets.serve(handler, server, port)
+    @app.websocket("/ws")
+    async def websocket_endpoint(websocket: WebSocket):
+        await websocket.accept()
+        print("\r└─ OK")
+        if WAIT_FOR_START_COMMAND:
+            print("waiting for start command")
+            print("└─ ... ", end='', flush=True)
+
+        connected_clients.add(websocket)
+        try:
+            while True:
+                data = await websocket.receive_json()
+                if data.get("type") == "command" and data.get("content") == "start-recording":
+                    print("\r└─ OK")
+                    start_recording_event.set()
+                elif data.get("type") == "audio":
+                    audio_chunk = data.get("content")
+                    audio_chunks.put(audio_chunk)
+
+
+        except json.JSONDecodeError:
+            print(Fore.RED + "STT Received an invalid JSON message." + Style.RESET_ALL)
+        except websockets.ConnectionClosedError:
+            print(Fore.RED + "connection closed unexpectedly by the client" + Style.RESET_ALL)
+        except websockets.exceptions.ConnectionClosedOK:
+            print("connection closed.")
+        finally:
+            print("client disconnected")
+            connected_clients.remove(websocket)
+            print("waiting for clients")
+            print("└─ ... ", end='', flush=True)
+
+    # start_server = websockets.serve(handler, server, port)
+    print("Server ready")
+    uvicorn.run(app, host=server, port=port)
+    loop = asyncio.get_event_loop()
 
     print("\r└─ OK")
     print("waiting for clients")
     print("└─ ... ", end='', flush=True)
 
-    loop.run_until_complete(start_server)
+    # loop.run_until_complete(start_server)
     loop.create_task(send_handler())
     loop.run_forever()
