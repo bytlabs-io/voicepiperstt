@@ -163,6 +163,9 @@ if __name__ == '__main__':
     print('Public URL:', ngrok_tunnel.public_url)
     nest_asyncio.apply()
 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     start_server = websockets.serve(handler, server, port)
     loop = asyncio.get_event_loop()
 
