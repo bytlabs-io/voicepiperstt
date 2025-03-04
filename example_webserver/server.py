@@ -167,7 +167,6 @@ if __name__ == '__main__':
     asyncio.set_event_loop(loop)
 
     start_server = websockets.serve(handler, server, port)
-    loop = asyncio.get_event_loop()
 
     print("\r└─ OK")
     print("waiting for clients")
