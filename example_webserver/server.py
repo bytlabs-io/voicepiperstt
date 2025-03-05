@@ -149,14 +149,15 @@ if __name__ == '__main__':
         connected_clients.add(websocket) 
         try:
             while True:
-                data = await websocket.receive_json()
-                if data.get("type") == "command" and data.get("content") == "start-recording":
-                    print("\r└─ OK")
-                    start_recording_event.set()
-                elif data.get("type") == "audio":
-                    audio_chunk = data.get("content")
-                    audio_chunks.put(audio_chunk)
-
+                message = await websocket.receive()
+                if message["type"] == "websocket.receive":
+                    data = json.loads(message["text"])
+                    if data.get("type") == "command" and data.get("content") == "start-recording":
+                        print("\r└─ OK")
+                        start_recording_event.set()
+                    elif data.get("type") == "audio":
+                        audio_chunk = data.get("content")
+                        audio_chunks.put(audio_chunk)
 
         except json.JSONDecodeError:
             print(Fore.RED + "STT Received an invalid JSON message." + Style.RESET_ALL)
@@ -170,7 +171,6 @@ if __name__ == '__main__':
             print("waiting for clients")
             print("└─ ... ", end='', flush=True)
 
-    # start_server = websockets.serve(handler, server, port)
     print("Server ready")
     uvicorn.run(app, host=server, port=port)
     loop = asyncio.get_event_loop()
@@ -179,6 +179,5 @@ if __name__ == '__main__':
     print("waiting for clients")
     print("└─ ... ", end='', flush=True)
 
-    # loop.run_until_complete(start_server)
     loop.create_task(send_handler())
     loop.run_forever()
