@@ -640,7 +640,7 @@ class AudioToTextRecorder:
         if not no_log_file:
             # Create a file handler and set its level
             file_handler = logging.FileHandler('realtimesst.log')
-            file_handler.setLevel(print)
+            # file_handler.setLevel(print)
             file_handler.setFormatter(logging.Formatter(
                 file_log_format,
                 datefmt='%Y-%m-%d %H:%M:%S'
