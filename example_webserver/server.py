@@ -128,6 +128,7 @@ if __name__ == '__main__':
                 chunk = np.frombuffer(chunk, dtype=np.int16)
                 chunk = chunk.reshape(-1, 1)
                 recorder.feed_audio(chunk)
+            print("before")
             sentence = recorder.text()
             print(Style.RESET_ALL + "\r└─ " + Fore.YELLOW + sentence + Style.RESET_ALL)
             add_message_to_queue("full", sentence)
