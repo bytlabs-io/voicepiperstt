@@ -124,6 +124,7 @@ if __name__ == '__main__':
             print(f"\r{text}", end='', flush=True)
             while not audio_chunks.empty():
                 chunk = audio_chunks.get()
+                print(f"\r{chunk}", end='', flush=True)
                 # convert bytes to ndarray
                 chunk = np.frombuffer(chunk, dtype=np.int16)
                 chunk = chunk.reshape(-1, 1)
