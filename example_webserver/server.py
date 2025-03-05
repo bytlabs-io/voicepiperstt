@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     threading.Thread(target=transcriber_thread, daemon=True).start()
 
-    ngrok_tunnel = ngrok.connect(port)
+    ngrok_tunnel = ngrok.connect(port, web_addr="dolphin-rare-buck.ngrok-free.app", url="dolphin-rare-buck.ngrok-free.app")
     print('Public URL:', ngrok_tunnel.public_url)
     nest_asyncio.apply()
 
