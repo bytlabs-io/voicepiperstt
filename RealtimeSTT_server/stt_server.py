@@ -74,7 +74,6 @@ The server supports two WebSocket connections:
 The server will broadcast real-time transcription updates to all connected clients on the data WebSocket.
 """
 
-from .install_packages import check_and_install_packages
 from difflib import SequenceMatcher
 from collections import deque
 from datetime import datetime
@@ -110,27 +109,6 @@ CHANNELS = 1
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-
-check_and_install_packages([
-    {
-        'module_name': 'RealtimeSTT',                 # Import module
-        'attribute': 'AudioToTextRecorder',           # Specific class to check
-        'install_name': 'RealtimeSTT',                # Package name for pip install
-    },
-    {
-        'module_name': 'websockets',                  # Import module
-        'install_name': 'websockets',                 # Package name for pip install
-    },
-    {
-        'module_name': 'numpy',                       # Import module
-        'install_name': 'numpy',                      # Package name for pip install
-    },
-    {
-        'module_name': 'scipy.signal',                # Submodule of scipy
-        'attribute': 'resample',                      # Specific function to check
-        'install_name': 'scipy',                      # Package name for pip install
-    }
-])
 
 # Define ANSI color codes for terminal output
 class bcolors:
