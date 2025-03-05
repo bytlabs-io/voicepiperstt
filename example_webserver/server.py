@@ -146,9 +146,11 @@ if __name__ == '__main__':
             print("waiting for start command")
             print("└─ ... ", end='', flush=True)
 
-        connected_clients.add(websocket)
+        connected_clients.add(websocket) 
         try:
             while True:
+                async for message in websocket.iter_text():
+                    print(message)
                 data = await websocket.receive_json()
                 if data.get("type") == "command" and data.get("content") == "start-recording":
                     print("\r└─ OK")
