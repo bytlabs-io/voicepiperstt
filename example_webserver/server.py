@@ -16,9 +16,9 @@ if __name__ == '__main__':
     from fastapi import FastAPI, WebSocket
     from colorama import Fore, Style
     from pyngrok import ngrok
+    import threading as th
     import nest_asyncio
     import websockets
-    import threading as th
     import colorama
     import asyncio
     import uvicorn
