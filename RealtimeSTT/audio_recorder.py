@@ -626,7 +626,7 @@ class AudioToTextRecorder:
 
         # Get the root logger
         logger = logging.getLogger()
-        logger.setLevel(print)  # Set the root logger's level to DEBUG
+        # logger.setLevel(print)  # Set the root logger's level to DEBUG
 
         # Remove any existing handlers
         logger.handlers = []
