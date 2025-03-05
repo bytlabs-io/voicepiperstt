@@ -78,6 +78,8 @@ from .install_packages import check_and_install_packages
 from difflib import SequenceMatcher
 from collections import deque
 from datetime import datetime
+from pyngrok import ngrok
+import nest_asyncio
 import logging
 import asyncio
 import pyaudio
@@ -846,6 +848,10 @@ async def shutdown_procedure():
 
 def main():
     try:
+        ngrok_tunnel1 = ngrok.connect(8011, url="dolphin-rare-buck.ngrok-free.app")
+        ngrok_tunnel2 = ngrok.connect(8012, url="dolphin-rare-buck.ngrok-free.app")
+        print('Public URL:', ngrok_tunnel2.public_url)
+        nest_asyncio.apply()
         asyncio.run(main_async())
     except KeyboardInterrupt:
         # Capture any final KeyboardInterrupt to prevent it from showing up in logs

@@ -127,6 +127,7 @@ if __name__ == '__main__':
                 chunk = chunk.reshape(-1, 1)
                 recorder.feed_audio(chunk)
             print("before")
+            recorder.start()
             sentence = recorder.text()
             print(Style.RESET_ALL + "\r└─ " + Fore.YELLOW + sentence + Style.RESET_ALL)
             add_message_to_queue("full", sentence)
