@@ -1,3 +1,5 @@
+
+
 WAIT_FOR_START_COMMAND = False
 
 if __name__ == '__main__':
@@ -18,6 +20,7 @@ if __name__ == '__main__':
     from pyngrok import ngrok
     import threading as th
     import nest_asyncio
+    import numpy as np
     import websockets
     import colorama
     import asyncio
@@ -122,6 +125,9 @@ if __name__ == '__main__':
             while not audio_chunks.empty():
                 print("Emptying...", end='', flush=True)
                 chunk = audio_chunks.get()
+                # convert bytes to ndarray
+                chunk = np.frombuffer(chunk, dtype=np.int16)
+                chunk = chunk.reshape(-1, 1)
                 recorder.feed_audio(chunk)
             sentence = recorder.transcribe()
             print(Style.RESET_ALL + "\r└─ " + Fore.YELLOW + sentence + Style.RESET_ALL)
