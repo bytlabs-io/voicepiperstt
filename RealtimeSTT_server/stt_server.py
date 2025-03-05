@@ -21,7 +21,7 @@ stt-server [OPTIONS]
     - `-r, --rt-model, --realtime_model_type`: Real-time model size; default 'tiny.en'.
     - `-l, --lang, --language`: Language code for transcription; default 'en'.
     - `-i, --input-device, --input_device_index`: Audio input device index; default 1.
-    - `-c, --control, --control_port`: WebSocket control port; default 8011.
+    - `-c, --control, --control_port`: WebSocket control port; default 8000.
     - `-d, --data, --data_port`: WebSocket data port; default 8012.
     - `-w, --wake_words`: Wake word(s) to trigger listening; default "".
     - `-D, --debug`: Enable debug logging.
@@ -360,8 +360,8 @@ def parse_arguments():
     parser.add_argument('-i', '--input-device', '--input-device-index', type=int, default=1,
                     help='Index of the audio input device to use. Use this option to specify a particular microphone or audio input device based on your system. Default is 1.')
 
-    parser.add_argument('-c', '--control', '--control_port', type=int, default=8011,
-                        help='The port number used for the control WebSocket connection. Control connections are used to send and receive commands to the server. Default is port 8011.')
+    parser.add_argument('-c', '--control', '--control_port', type=int, default=8000,
+                        help='The port number used for the control WebSocket connection. Control connections are used to send and receive commands to the server. Default is port 8000.')
 
     parser.add_argument('-d', '--data', '--data_port', type=int, default=8012,
                         help='The port number used for the data WebSocket connection. Data connections are used to send audio data and receive transcription updates in real time. Default is port 8012.')
@@ -826,11 +826,11 @@ async def shutdown_procedure():
 
 def main():
     try:
-        asyncio.run(main_async())
-        ngrok_tunnel1 = ngrok.connect(8011, url="dolphin-rare-buck.ngrok-free.app")
+        ngrok_tunnel1 = ngrok.connect(8000, url="dolphin-rare-buck.ngrok-free.app")
         ngrok_tunnel2 = ngrok.connect(8012, )
         print('Public URL:', ngrok_tunnel2.public_url)
         nest_asyncio.apply()
+        asyncio.run(main_async())
     except KeyboardInterrupt:
         # Capture any final KeyboardInterrupt to prevent it from showing up in logs
         print(f"{bcolors.WARNING}Server interrupted by user.{bcolors.ENDC}")
