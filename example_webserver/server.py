@@ -151,6 +151,7 @@ if __name__ == '__main__':
             while True:
                 message = await websocket.receive()
                 if message["type"] == "websocket.receive":
+                    print(message)
                     data = json.loads(message["text"])
                     if data.get("type") == "command" and data.get("content") == "start-recording":
                         print("\r└─ OK")
