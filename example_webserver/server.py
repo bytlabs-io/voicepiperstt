@@ -120,6 +120,7 @@ if __name__ == '__main__':
             text = fill_cli_line(text)
             print(f"\r{text}", end='', flush=True)
             while not audio_chunks.empty():
+                print("Emptying...", end='', flush=True)
                 chunk = audio_chunks.get()
                 recorder.feed_audio(chunk)
             sentence = recorder.transcript_process()
@@ -159,6 +160,7 @@ if __name__ == '__main__':
                         print(f"Transcription Config: {transcription_config}")
                         print("\r└─ OK")
                         start_recording_event.set()
+                        start_transcription_event.set()
                     elif "bytes" in message:
                         audio_chunks.put(message["bytes"])
 
