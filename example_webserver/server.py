@@ -121,10 +121,9 @@ if __name__ == '__main__':
             start_transcription_event.wait()
             text = "└─ transcribing ... "
             text = fill_cli_line(text)
-            print(f"\r{text}", end='')
+            print(f"\r{text}", end='', flush=True)
             while not audio_chunks.empty():
                 chunk = audio_chunks.get()
-                print(f"\r{chunk}", end='')
                 # convert bytes to ndarray
                 chunk = np.frombuffer(chunk, dtype=np.int16)
                 chunk = chunk.reshape(-1, 1)
