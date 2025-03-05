@@ -151,14 +151,16 @@ if __name__ == '__main__':
             while True:
                 message = await websocket.receive()
                 if message["type"] == "websocket.receive":
-                    print(message)
-                    data = json.loads(message["text"])
-                    if data.get("type") == "command" and data.get("content") == "start-recording":
+                    if "text" in message:
+                        data = json.loads(message["text"])
+                        audio_format = data.get("audio_format")
+                        transcription_config = data.get("transcription_config")
+                        print(f"Audio Format: {audio_format}")
+                        print(f"Transcription Config: {transcription_config}")
                         print("\r└─ OK")
                         start_recording_event.set()
-                    elif data.get("type") == "audio":
-                        audio_chunk = data.get("content")
-                        audio_chunks.put(audio_chunk)
+                    elif "bytes" in message:
+                        audio_chunks.put(message["bytes"])
 
         except json.JSONDecodeError:
             print(Fore.RED + "STT Received an invalid JSON message." + Style.RESET_ALL)
