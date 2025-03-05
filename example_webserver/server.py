@@ -123,7 +123,6 @@ if __name__ == '__main__':
             text = fill_cli_line(text)
             print(f"\r{text}", end='', flush=True)
             while not audio_chunks.empty():
-                print("Emptying...", end='', flush=True)
                 chunk = audio_chunks.get()
                 # convert bytes to ndarray
                 chunk = np.frombuffer(chunk, dtype=np.int16)

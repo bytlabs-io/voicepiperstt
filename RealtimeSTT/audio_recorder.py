@@ -165,7 +165,7 @@ class TranscriptionWorker:
             while not self.shutdown_event.is_set():
                 try:
                     audio, language = self.queue.get(timeout=0.1)
-                    print(audio)
+                    print(audio, language)
                     try:
                         logging.debug(f"Transcribing audio with language {language}")
                         if self.batch_size > 0:
