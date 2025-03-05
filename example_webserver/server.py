@@ -149,7 +149,7 @@ if __name__ == '__main__':
         connected_clients.add(websocket) 
         try:
             while True:
-                async for message in websocket.iter_text():
+                async for message in websocket:
                     print(message)
                 data = await websocket.receive_json()
                 if data.get("type") == "command" and data.get("content") == "start-recording":
