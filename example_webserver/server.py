@@ -18,7 +18,7 @@ if __name__ == '__main__':
     from pyngrok import ngrok
     import nest_asyncio
     import websockets
-    import threading
+    import threading as th
     import colorama
     import asyncio
     import uvicorn
@@ -34,8 +34,8 @@ if __name__ == '__main__':
     full_sentences = []
     displayed_text = ""
     message_queue = queue.Queue()
-    start_recording_event = threading.Event()
-    start_transcription_event = threading.Event()
+    start_recording_event = th.Event()
+    start_transcription_event = th.Event()
     connected_clients = set()
     audio_chunks = queue.Queue()
 
@@ -123,7 +123,7 @@ if __name__ == '__main__':
                 print("Emptying...", end='', flush=True)
                 chunk = audio_chunks.get()
                 recorder.feed_audio(chunk)
-            sentence = recorder.transcript_process()
+            sentence = recorder.transcribe()
             print(Style.RESET_ALL + "\r└─ " + Fore.YELLOW + sentence + Style.RESET_ALL)
             add_message_to_queue("full", sentence)
             start_transcription_event.clear()
@@ -131,7 +131,7 @@ if __name__ == '__main__':
                 print("waiting for start command")
                 print("└─ ... ", end='', flush=True)
 
-    threading.Thread(target=transcriber_thread, daemon=True).start()
+    th.Thread(target=transcriber_thread, daemon=True).start()
 
     ngrok_tunnel = ngrok.connect(port, url="dolphin-rare-buck.ngrok-free.app")
     print('Public URL:', ngrok_tunnel.public_url)
