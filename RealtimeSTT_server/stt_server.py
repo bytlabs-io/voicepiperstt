@@ -647,7 +647,7 @@ async def control_handler(websocket):
                     print(f"{bcolors.WARNING}Received invalid JSON command{bcolors.ENDC}")
                     await websocket.send(json.dumps({"status": "error", "message": "Invalid JSON command"}))
             else:
-                print(f"{bcolors.WARNING}Received unknown message type on control connection{bcolors.ENDC}")
+                print(f"{bcolors.WARNING}Received unknown message {command} type on control connection{bcolors.ENDC}")
     except websockets.exceptions.ConnectionClosed as e:
         print(f"{bcolors.WARNING}Control client disconnected: {e}{bcolors.ENDC}")
     finally:
