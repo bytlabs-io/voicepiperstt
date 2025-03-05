@@ -86,6 +86,8 @@ if platform.system() != 'Darwin':
     INIT_HANDLE_BUFFER_OVERFLOW = True
 
 
+logging.basicConfig(level=logging.DEBUG)
+
 class TranscriptionWorker:
     def __init__(self, conn, stdout_pipe, model_path, download_root, compute_type, gpu_device_index, device,
                  ready_event, shutdown_event, interrupt_stop_event, beam_size, initial_prompt, suppress_tokens, batch_size):
