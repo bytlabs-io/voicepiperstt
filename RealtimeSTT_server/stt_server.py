@@ -796,7 +796,7 @@ async def main_async():
         # Run server tasks
         await asyncio.gather(control_server.wait_closed(), data_server.wait_closed(), broadcast_task)
     except OSError as e:
-        print(f"{bcolors.FAIL}Error: Could not start server on specified ports. It’s possible another instance of the server is already running, or the ports are being used by another application.{bcolors.ENDC}")
+        print(f"{bcolors.FAIL}Error: {e} Could not start server on specified ports. It’s possible another instance of the server is already running, or the ports are being used by another application.{bcolors.ENDC}")
     except KeyboardInterrupt:
         print(f"{bcolors.WARNING}Server interrupted by user, shutting down...{bcolors.ENDC}")
     finally:
