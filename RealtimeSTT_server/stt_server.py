@@ -826,9 +826,10 @@ async def shutdown_procedure():
 
 def main():
     try:
-        ngrok_tunnel1 = ngrok.connect(8000, url="dolphin-rare-buck.ngrok-free.app")
-        ngrok_tunnel2 = ngrok.connect(8012, )
-        print('Public URL:', ngrok_tunnel2.public_url)
+        ngrok_tunnel1 = ngrok.connect(8000,)
+        ngrok_tunnel2 = ngrok.connect(8012,)
+        print('STT Control Channel:', ngrok_tunnel1.public_url)
+        print('STT Data Channel:', ngrok_tunnel2.public_url)
         nest_asyncio.apply()
         asyncio.run(main_async())
     except KeyboardInterrupt:
