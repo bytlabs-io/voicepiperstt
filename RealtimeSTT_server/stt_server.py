@@ -360,10 +360,10 @@ def parse_arguments():
     parser.add_argument('-i', '--input-device', '--input-device-index', type=int, default=1,
                     help='Index of the audio input device to use. Use this option to specify a particular microphone or audio input device based on your system. Default is 1.')
 
-    parser.add_argument('-c', '--control', '--control_port', type=int, default=8000,
+    parser.add_argument('-c', '--control', '--control_port', type=int, default=8001,
                         help='The port number used for the control WebSocket connection. Control connections are used to send and receive commands to the server. Default is port 8000.')
 
-    parser.add_argument('-d', '--data', '--data_port', type=int, default=8012,
+    parser.add_argument('-d', '--data', '--data_port', type=int, default=8002,
                         help='The port number used for the data WebSocket connection. Data connections are used to send audio data and receive transcription updates in real time. Default is port 8012.')
 
     parser.add_argument('-w', '--wake_words', type=str, default="",
@@ -826,8 +826,8 @@ async def shutdown_procedure():
 
 def main():
     try:
-        ngrok_tunnel1 = ngrok.connect(8000,)
-        ngrok_tunnel2 = ngrok.connect(8012,)
+        ngrok_tunnel1 = ngrok.connect(8001,)
+        ngrok_tunnel2 = ngrok.connect(8002,)
         print('STT Control Channel:', ngrok_tunnel1.public_url)
         print('STT Data Channel:', ngrok_tunnel2.public_url)
         nest_asyncio.apply()
