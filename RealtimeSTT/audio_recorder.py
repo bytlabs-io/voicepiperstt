@@ -149,7 +149,7 @@ class TranscriptionWorker:
                 current_dir, "warmup_audio.wav"
             )
             warmup_audio_data, _ = sf.read(warmup_audio_path, dtype="float32")
-            segments, info = model.transcribe(warmup_audio_data, language="aka", beam_size=1)
+            segments, info = model.transcribe(warmup_audio_data, language="ak", beam_size=1)
             model_warmup_transcription = " ".join(segment.text for segment in segments)
         except Exception as e:
             logging.exception(f"Error initializing main faster_whisper transcription model: {e}")
