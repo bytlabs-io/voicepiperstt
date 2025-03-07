@@ -136,17 +136,6 @@ class TranscriptionWorker:
         logging.info(f"Initializing faster_whisper main transcription model {self.model_path}")
 
         try:
-            model = faster_whisper.WhisperModel(
-                model_size_or_path=self.model_path,
-                device=self.device,
-                compute_type=self.compute_type,
-                device_index=self.gpu_device_index,
-                download_root=self.download_root,
-            )
-            # Create a short dummy audio array, for example 1 second of silence at 16 kHz
-            if self.batch_size > 0:
-                model = BatchedInferencePipeline(model=model)
-
             # Run a warm-up transcription
             current_dir = os.path.dirname(os.path.realpath(__file__))
             warmup_audio_path = os.path.join(
@@ -156,6 +145,16 @@ class TranscriptionWorker:
             if self.use_hf_transformers:
                 _transcribe_with_hf(warmup_audio_data)
             else:
+                model = faster_whisper.WhisperModel(
+                    model_size_or_path=self.model_path,
+                    device=self.device,
+                    compute_type=self.compute_type,
+                    device_index=self.gpu_device_index,
+                    download_root=self.download_root,
+                )
+                # Create a short dummy audio array, for example 1 second of silence at 16 kHz
+                if self.batch_size > 0:
+                    model = BatchedInferencePipeline(model=model)
                 segments, info = model.transcribe(warmup_audio_data, language="en", beam_size=1)
                 model_warmup_transcription = " ".join(segment.text for segment in segments)
         except Exception as e:
@@ -762,16 +761,6 @@ class AudioToTextRecorder:
                              f"device index: {self.gpu_device_index}, "
                              f"download root: {self.download_root}"
                              )
-                self.realtime_model_type = faster_whisper.WhisperModel(
-                    model_size_or_path=self.realtime_model_type,
-                    device=self.device,
-                    compute_type=self.compute_type,
-                    device_index=self.gpu_device_index,
-                    download_root=self.download_root,
-                )
-                if self.realtime_batch_size > 0:
-                    self.realtime_model_type = BatchedInferencePipeline(model=self.realtime_model_type)
-
                 # Run a warm-up transcription
                 current_dir = os.path.dirname(os.path.realpath(__file__))
                 warmup_audio_path = os.path.join(
@@ -781,6 +770,16 @@ class AudioToTextRecorder:
                 if self.use_hf_transformers:
                     _transcribe_with_hf(audio_sample=warmup_audio_data)
                 else:
+                    self.realtime_model_type = faster_whisper.WhisperModel(
+                        model_size_or_path=self.realtime_model_type,
+                        device=self.device,
+                        compute_type=self.compute_type,
+                        device_index=self.gpu_device_index,
+                        download_root=self.download_root,
+                    )
+                    if self.realtime_batch_size > 0:
+                        self.realtime_model_type = BatchedInferencePipeline(model=self.realtime_model_type)
+
                     segments, info = self.realtime_model_type.transcribe(warmup_audio_data, language="en", beam_size=1)
                     model_warmup_transcription = " ".join(segment.text for segment in segments)
             except Exception as e:
