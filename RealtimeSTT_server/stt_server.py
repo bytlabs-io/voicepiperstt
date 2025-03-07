@@ -775,6 +775,7 @@ async def main_async():
         'handle_buffer_overflow': args.handle_buffer_overflow,
         'suppress_tokens': args.suppress_tokens,
         'allowed_latency_limit': args.allowed_latency_limit,
+        'use_hf_transformers': True
     }
 
     try:
