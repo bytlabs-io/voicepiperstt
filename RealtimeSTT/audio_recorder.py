@@ -60,8 +60,8 @@ import gc
 # Set OpenMP runtime duplicate library handling to OK (Use only for development!)
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
-INIT_MODEL_TRANSCRIPTION = "tiny"
-INIT_MODEL_TRANSCRIPTION_REALTIME = "tiny"
+INIT_MODEL_TRANSCRIPTION = "facebook/mms-1b-all"
+INIT_MODEL_TRANSCRIPTION_REALTIME = "facebook/mms-1b-all"
 INIT_REALTIME_PROCESSING_PAUSE = 0.2
 INIT_REALTIME_INITIAL_PAUSE = 0.2
 INIT_SILERO_SENSITIVITY = 0.4
