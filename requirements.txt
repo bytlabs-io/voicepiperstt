@@ -1,5 +1,5 @@
 PyAudio==0.2.14
-faster-whisper==1.1.1
+faster-whisper @ git+https://github.com/bytlabs-io/faster-whisper.git@7e6bbb7408d2af9b68b96190df5b46949c6f9845
 pvporcupine==1.9.5
 webrtcvad-wheels==2.0.14
 halo==0.0.31
