@@ -27,6 +27,7 @@ Author: Kolja Beigel
 """
 
 from faster_whisper import WhisperModel, BatchedInferencePipeline
+from transformers import Wav2Vec2ForCTC, AutoProcessor
 from typing import Iterable, List, Optional, Union
 from openwakeword.model import Model
 import torch.multiprocessing as mp
@@ -48,6 +49,7 @@ import platform
 import logging
 import struct
 import base64
+import torch
 import queue
 import torch
 import halo
@@ -89,7 +91,8 @@ if platform.system() != 'Darwin':
 
 class TranscriptionWorker:
     def __init__(self, conn, stdout_pipe, model_path, download_root, compute_type, gpu_device_index, device,
-                 ready_event, shutdown_event, interrupt_stop_event, beam_size, initial_prompt, suppress_tokens, batch_size):
+                 ready_event, shutdown_event, interrupt_stop_event, beam_size, initial_prompt, suppress_tokens,
+                batch_size, use_hf_transformers):
         self.conn = conn
         self.stdout_pipe = stdout_pipe
         self.model_path = model_path
@@ -104,6 +107,7 @@ class TranscriptionWorker:
         self.initial_prompt = initial_prompt
         self.suppress_tokens = suppress_tokens
         self.batch_size = batch_size
+        self.use_hf_transformers = use_hf_transformers
         self.queue = queue.Queue()
 
     def custom_print(self, *args, **kwargs):
@@ -149,8 +153,11 @@ class TranscriptionWorker:
                 current_dir, "warmup_audio.wav"
             )
             warmup_audio_data, _ = sf.read(warmup_audio_path, dtype="float32")
-            segments, info = model.transcribe(warmup_audio_data, language="en", beam_size=1)
-            model_warmup_transcription = " ".join(segment.text for segment in segments)
+            if self.use_hf_transformers:
+                _transcribe_with_hf(warmup_audio_data)
+            else:
+                segments, info = model.transcribe(warmup_audio_data, language="en", beam_size=1)
+                model_warmup_transcription = " ".join(segment.text for segment in segments)
         except Exception as e:
             logging.exception(f"Error initializing main faster_whisper transcription model: {e}")
             raise
@@ -168,28 +175,33 @@ class TranscriptionWorker:
                     audio, language = self.queue.get(timeout=0.1)
                     print(audio, language)
                     try:
-                        logging.debug(f"Transcribing audio with language {language}")
-                        if self.batch_size > 0:
-                            segments, info = model.transcribe(
-                                audio,
-                                language=language if language else None,
-                                beam_size=self.beam_size,
-                                initial_prompt=self.initial_prompt,
-                                suppress_tokens=self.suppress_tokens,
-                                batch_size=self.batch_size
-                            )
-                        else:
-                            segments, info = model.transcribe(
-                                audio,
-                                language=language if language else None,
-                                beam_size=self.beam_size,
-                                initial_prompt=self.initial_prompt,
-                                suppress_tokens=self.suppress_tokens
-                            )
+                        if not self.use_hf_transformers:
 
-                        transcription = " ".join(seg.text for seg in segments).strip()
-                        logging.debug(f"Final text detected with main model: {transcription}")
-                        self.conn.send(('success', (transcription, info)))
+                            logging.debug(f"Transcribing audio with language {language}")
+                            if self.batch_size > 0:
+                                segments, info = model.transcribe(
+                                    audio,
+                                    language=language if language else None,
+                                    beam_size=self.beam_size,
+                                    initial_prompt=self.initial_prompt,
+                                    suppress_tokens=self.suppress_tokens,
+                                    batch_size=self.batch_size
+                                )
+                            else:
+                                segments, info = model.transcribe(
+                                    audio,
+                                    language=language if language else None,
+                                    beam_size=self.beam_size,
+                                    initial_prompt=self.initial_prompt,
+                                    suppress_tokens=self.suppress_tokens
+                                )
+
+                            transcription = " ".join(seg.text for seg in segments).strip()
+                            logging.debug(f"Final text detected with main model: {transcription}")
+                            self.conn.send(('success', (transcription, info)))
+                        else:
+                            transcription = _transcribe_with_hf(audio)
+                            self.conn.send(('success', (transcription, None)))
                     except Exception as e:
                         logging.error(f"General error in transcription: {e}", exc_info=True)
                         self.conn.send(('error', str(e)))
@@ -208,6 +220,25 @@ class TranscriptionWorker:
             self.shutdown_event.set()  # Ensure the polling thread will stop
             polling_thread.join()  # Wait for the polling thread to finish
 
+
+def _transcribe_with_hf(audio_sample, sr=16000, lang="aka"):
+    model_id = "facebook/mms-1b-all"
+
+    processor = AutoProcessor.from_pretrained(model_id)
+    model = Wav2Vec2ForCTC.from_pretrained(model_id)
+
+    processor.tokenizer.set_target_lang("aka")
+    model.load_adapter(lang)
+
+    inputs = processor(audio_sample, sampling_rate=sr, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = model(**inputs).logits
+
+    ids = torch.argmax(outputs, dim=-1)[0]
+    transcription = processor.decode(ids)
+
+    return transcription
 
 class bcolors:
     OKGREEN = '\033[92m'  # Green for active speech detection
@@ -300,6 +331,7 @@ class AudioToTextRecorder:
                  allowed_latency_limit: int = ALLOWED_LATENCY_LIMIT,
                  no_log_file: bool = False,
                  use_extended_logging: bool = False,
+                 use_hf_transformers: bool = False,
                  ):
         """
         Initializes an audio recorder and  transcription
@@ -509,6 +541,9 @@ class AudioToTextRecorder:
         - use_extended_logging (bool, default=False): Writes extensive
             log messages for the recording worker, that processes the audio
             chunks.
+        - use_hf_transformers (bool, default=False): If set to True, 
+            use huggingface transformers for transcription instead of 
+            faster_whisper
 
         Raises:
             Exception: Errors related to initializing transcription
@@ -617,6 +652,7 @@ class AudioToTextRecorder:
         self.print_transcription_time = print_transcription_time
         self.early_transcription_on_silence = early_transcription_on_silence
         self.use_extended_logging = use_extended_logging
+        self.use_hf_transformers = use_hf_transformers
 
         # Initialize the logging configuration with the specified level
         log_format = 'RealTimeSTT: %(name)s - %(levelname)s - %(message)s'
@@ -691,7 +727,8 @@ class AudioToTextRecorder:
                 self.beam_size,
                 self.initial_prompt,
                 self.suppress_tokens,
-                self.batch_size
+                self.batch_size,
+                self.use_hf_transformers
             )
         )
 
@@ -741,8 +778,11 @@ class AudioToTextRecorder:
                     current_dir, "warmup_audio.wav"
                 )
                 warmup_audio_data, _ = sf.read(warmup_audio_path, dtype="float32")
-                segments, info = self.realtime_model_type.transcribe(warmup_audio_data, language="en", beam_size=1)
-                model_warmup_transcription = " ".join(segment.text for segment in segments)
+                if self.use_hf_transformers:
+                    _transcribe_with_hf(audio_sample=warmup_audio_data)
+                else:
+                    segments, info = self.realtime_model_type.transcribe(warmup_audio_data, language="en", beam_size=1)
+                    model_warmup_transcription = " ".join(segment.text for segment in segments)
             except Exception as e:
                 logging.exception("Error initializing faster_whisper "
                                   f"realtime transcription model: {e}"
@@ -1447,8 +1487,12 @@ class AudioToTextRecorder:
                 self._set_state("inactive")
                 if status == 'success':
                     segments, info = result
-                    self.detected_language = info.language if info.language_probability > 0 else None
-                    self.detected_language_probability = info.language_probability
+                    if self.use_hf_transformers:
+                        self.detected_language = self.language
+                        self.detected_language_probability = 1
+                    else:
+                        self.detected_language = info.language if info.language_probability > 0 else None
+                        self.detected_language_probability = info.language_probability
                     self.last_transcription_bytes = copy.deepcopy(audio_copy)                    
                     self.last_transcription_bytes_b64 = base64.b64encode(self.last_transcription_bytes.tobytes()).decode('utf-8')
                     transcription = self._preprocess_output(segments)
@@ -2219,30 +2263,39 @@ class AudioToTextRecorder:
                                 continue
                     else:
                         # Perform transcription and assemble the text
-                        if self.realtime_batch_size > 0:
-                            segments, info = self.realtime_model_type.transcribe(
-                                audio_array,
-                                language=self.language if self.language else None,
-                                beam_size=self.beam_size_realtime,
-                                initial_prompt=self.initial_prompt_realtime,
-                                suppress_tokens=self.suppress_tokens,
-                                batch_size=self.realtime_batch_size
-                            )
-                        else:
-                            segments, info = self.realtime_model_type.transcribe(
-                                audio_array,
-                                language=self.language if self.language else None,
-                                beam_size=self.beam_size_realtime,
-                                initial_prompt=self.initial_prompt_realtime,
-                                suppress_tokens=self.suppress_tokens
-                            )
+                        if not self.use_hf_transformers:
+                            if self.realtime_batch_size > 0:                                
+                                segments, info = self.realtime_model_type.transcribe(
+                                    audio_array,
+                                    language=self.language if self.language else None,
+                                    beam_size=self.beam_size_realtime,
+                                    initial_prompt=self.initial_prompt_realtime,
+                                    suppress_tokens=self.suppress_tokens,
+                                    batch_size=self.realtime_batch_size
+                                )
+                            else:
+                                segments, info = self.realtime_model_type.transcribe(
+                                    audio_array,
+                                    language=self.language if self.language else None,
+                                    beam_size=self.beam_size_realtime,
+                                    initial_prompt=self.initial_prompt_realtime,
+                                    suppress_tokens=self.suppress_tokens
+                                )
 
-                        self.detected_realtime_language = info.language if info.language_probability > 0 else None
-                        self.detected_realtime_language_probability = info.language_probability
-                        realtime_text = " ".join(
-                            seg.text for seg in segments
-                        )
-                        logging.debug(f"Realtime text detected: {realtime_text}")
+                            self.detected_realtime_language = info.language if info.language_probability > 0 else None
+                            self.detected_realtime_language_probability = info.language_probability
+                            realtime_text = " ".join(
+                                seg.text for seg in segments
+                            )
+                            logging.debug(f"Realtime text detected: {realtime_text}")
+                        else:
+                            self.detected_realtime_language = self.language
+                            self.detected_realtime_language_probability = 1
+                            realtime_text = _transcribe_with_hf(audio_array)
+                            logging.debug(f"Realtime text detected: {realtime_text}")
+                        
+
+                        
 
                     # double check recording state
                     # because it could have changed mid-transcription
